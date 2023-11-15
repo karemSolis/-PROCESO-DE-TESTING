@@ -1,11 +1,11 @@
-import express from "express"; //importación de express
-import { engine } from "express-handlebars"; /*importación de módulo express-handlebars, osea la biblio para usar motores de plantillas handlebars con express */
+import express from "express"; 
+import { engine } from "express-handlebars"; 
 import mongoose from "mongoose";
 import MongoStore from "connect-mongo"
 import session from 'express-session'
 import FileStore from 'session-file-store'
-import passport from "passport";//REF.LOGIN
-import * as path from "path" /*importación del módulo path de node.js, entrega utilidades para trabajar con rutas de archivos y directorios */
+import passport from "passport";
+import * as path from "path" 
 
 import ProductManager from "./DAO/manager/ProductManager.js";
 import CartManager from "./DAO/manager/CartManager.js";
@@ -15,46 +15,45 @@ import userRouter from "./router/users.routes.js";
 import productRouter from "./router/product.routes.js";
 import CartRouter from "./router/cart.routes.js";
 
-import initializaPassport from "./config/passport.config.js";//REF.LOGIN
-import __dirname from "./utils.js"; /*importación de la variable __dirname desde el archivo utils.js*/
+import initializaPassport from "./config/passport.config.js"; 
+import __dirname from "./utils.js"; 
 
-import config from "./config.js";
-
-console.log(config)
+import config from "./config/config.js";
 
 
-const app = express(); //aquí la creación de la instancia de la apli express
-
-const fileStorage = FileStore(session)
+const app = express(); 
 
 const product = new ProductManager();
 const carts = new CartManager();
-const userManager = new UserManager();
+//const userManager = new UserManager();
 
 //analizarán solicitudes HTTP entrantes y los convertirán en formato json o url
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-/*LA CONFIGURACIÓN DE SESSION QUE ESTABLECE UNA CONEXIÓN CON ATLAS UTILIZANDO CREDENCIALES, ENTONCES ESTA ES LA PARTE DEL CÓDIGO QUE CONFIGURA
-LAS SESIONES DE MI APP USANDO MÓDULO EXPRESS-SESSIONS QUE SE INTALA POR LA TERMINAL Y SE IMPORTA ACÁ*/
 
-/*MIDDLEWARS QUE AGREGA SESIONES, PERMITIENDO QUE LA APP MANTENGA EL ESTADO DE USUARIO ENTRE SOLICITUDAS COMO LA AUTENTICACIÓN 
-Y PERCISTENCIA DE LOS DATOS DE LOS USUARIOS */
-app.use(session({
-    store: MongoStore.create({ /*CONFIGURA EL ALMACENAMIENTO DE SESSIONES USANDO CONNECT-MONGO QUE TB LA INSTALE EN LA TERMINAL, ESTE ALMACENAMIENTO
-    ASEGURA QUE SEAN SESIONES PERSISTENTES Y SEGURAS*/
-      mongoUrl: "mongodb+srv://soliskarem:yHO8pYSTC6sFsoi1@coder.9lutzzn.mongodb.net/?retryWrites=true&w=majority",
-      mongoOptions: { useNewUrlParser: true, useUnifiedTopology: true },
-      ttl : 600
-    }),
-    secret: "ClaveSecretaSeguraYUnicajojojo", //FIRMA DE LA COOKIE
-    resave: false, //EVITA QUE SE GUARDEN LAS SESIONES SIN LOS CAMBIOS QUE PUEDAN TENER 
-    saveUninitialized: false, //EVITA QUE LAS SESIONES SE GUARDEN HASTA QUE SE MODIFIQUEN 
-    cookie: {//DURACIÓN MÁXIMA 24 HRS
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
+const urlMongoDB = config.mongoUrl;
+const connection = mongoose.connect(urlMongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
+
+console.log(config)
+
+
+const sessionOptions = {
+  store: MongoStore.create({
+    mongoUrl: process.env.SESSION_MONGO_URL,
+    mongoOptions: { useNewUrlParser: true, useUnifiedTopology: true },
+    ttl: 600
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: process.env.SESSION_RESAVE === 'false', 
+  saveUninitialized: process.env.SESSION_SAVE_UNINITIALIZED === 'false', // Lo mismo aquí
+  cookie: {
+    maxAge: parseInt(process.env.SESSION_COOKIE_MAX_AGE, 10) || 86400000,
+  },
+};
+
+app.use(session(sessionOptions));
+
 
 //passport.config
 (initializaPassport())
